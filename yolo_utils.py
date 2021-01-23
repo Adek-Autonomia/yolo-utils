@@ -2,6 +2,26 @@
 Utils and handling for YOLO object predictions.
 """
 import numpy as np
+import cv2
+
+
+def get_net(yconfig='YOLO_object_det/darknet/cfg/yolov4-custom.cfg', yweights='mydrive/yolov4/backup/yolov4-obj_last.weights'):
+    """
+    Gets cv2.dnn.Net from darknet driectory
+    """
+    return cv2.dnn.readNetFromDarknet(yconfig, yweights)
+
+
+
+def get_predictions(net, img):
+    """
+    Gets raw predictions from YOLO with image.
+    """
+    if isinstance(img, str):
+        img = cv2.imread(img)
+    net.setInput(img)
+    return net.forward()
+
 
 
 
