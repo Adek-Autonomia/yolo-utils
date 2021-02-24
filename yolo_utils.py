@@ -1,10 +1,13 @@
 """
 Utils and handling for YOLO object predictions.
-SYNTAX: yolo_utils.py -i directory/img.jpg -t 0.5
 """
 import numpy as np
 import cv2
-import argparse
+
+
+IMAGE = 'path/to/img.jpg'
+YOLO_CONFIG = 'cfg/yolov3_custom.cfg'
+YOLO_WEIGHTS = 'backup/yolov3_custom_last.weights'
 
 
 def get_net_layers(yconfig='cfg/yolov3_custom.cfg', yweights='backup/yolov3_custom_last.weights'):
@@ -57,18 +60,12 @@ def get_labels(predictions, thresh):
     return confidences, class_ids, boxes
     
 
+
 ## ROS TESTING
-parser = argparse.ArgumentParser()
-parser.add_argument('-i')
-parser.add_argument('t', type=float, default=.5)
-
-args = parser.parse_args()
-img = args.i ## PATH TO IMG
-thresh = args.t ## CONFIDENCE THRESHOLD
-
-net, outlayers = get_net_layers() ## Filepaths correct?
+img = cv2.imread(IMAGE)
+net, outlayers = get_net_layers(YOLO_CONFIG, YOLO_WEIGHTS) ## Filepaths correct?
 raw_preds = get_predictions(net, img, outlayers)
-confs, class_ids, boxes = get_labels(raw_preds, thresh)
+confs, class_ids, boxes = get_labels(raw_preds, .1)
 for c, ci, b in confs, class_ids, boxes:
     print(f'Detected class {ci} at {b} with confidence {c}.')
 if len(c) == 0:
