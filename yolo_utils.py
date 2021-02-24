@@ -1,11 +1,13 @@
 """
 Utils and handling for YOLO object predictions.
+SYNTAX: yolo_utils.py -i directory/img.jpg -t 0.5
 """
 import numpy as np
 import cv2
+import argparse
 
 
-def get_net_layers(yconfig='YOLO_object_det/darknet/cfg/yolov3-custom.cfg', yweights='mydrive/yolov4/backup/yolov4-obj_last.weights'):
+def get_net_layers(yconfig='cfg/yolov3_custom.cfg', yweights='backup/yolov3_custom_last.weights'):
     """
     Gets cv2.dnn.Net from darknet driectory
     """
@@ -54,3 +56,21 @@ def get_labels(predictions, thresh):
                 class_ids.append(class_id)
     return confidences, class_ids, boxes
     
+
+## ROS TESTING
+parser = argparse.ArgumentParser()
+parser.add_argument('-i')
+parser.add_argument('t', type=float, default=.5)
+
+args = parser.parse_args()
+img = args.i ## PATH TO IMG
+thresh = args.t ## CONFIDENCE THRESHOLD
+
+net, outlayers = get_net_layers() ## Filepaths correct?
+raw_preds = get_predictions(net, img, outlayers)
+confs, class_ids, boxes = get_labels(raw_preds, thresh)
+for c, ci, b in confs, class_ids, boxes:
+    print(f'Detected class {ci} at {b} with confidence {c}.')
+if len(c) == 0:
+    print('No objects found.')
+
