@@ -3,11 +3,12 @@ Utils and handling for YOLO object predictions.
 """
 import numpy as np
 import cv2
-
+import time
 
 IMAGE = 'path/to/img.jpg'
 YOLO_CONFIG = 'cfg/yolov3_custom.cfg'
 YOLO_WEIGHTS = 'backup/yolov3_custom_last.weights'
+NUM_ITERS = 400
 
 
 def get_net_layers(yconfig='cfg/yolov3_custom.cfg', yweights='backup/yolov3_custom_last.weights'):
@@ -28,7 +29,7 @@ def get_predictions(net, img, out_layers):
         img = cv2.imread(img)
     cv2.resize(img, (416, 416))
     blob = cv2.dnn.blobFromImage(img)
-    net.setInput(img)
+    net.setInput(blob)
     return net.forward(out_layers)
 
 
@@ -62,12 +63,26 @@ def get_labels(predictions, thresh):
 
 
 ## ROS TESTING
-img = cv2.imread(IMAGE)
-net, outlayers = get_net_layers(YOLO_CONFIG, YOLO_WEIGHTS) ## Filepaths correct?
-raw_preds = get_predictions(net, img, outlayers)
-confs, class_ids, boxes = get_labels(raw_preds, .1)
-for c, ci, b in confs, class_ids, boxes:
-    print(f'Detected class {ci} at {b} with confidence {c}.')
-if len(c) == 0:
-    print('No objects found.')
+def unit_test1():
+    img = cv2.imread(IMAGE)
+    net, outlayers = get_net_layers(YOLO_CONFIG, YOLO_WEIGHTS) ## Filepaths correct?
+    raw_preds = get_predictions(net, img, outlayers)
+    confs, class_ids, boxes = get_labels(raw_preds, .1)
+    for c, ci, b in zip(confs, class_ids, boxes):
+        print(f'Detected class {ci} at {b} with confidence {c}.')
+    if len(c) == 0:
+        print('No objects found.')
+
+## JETSON FPS TESTING
+def unit_test_fps():
+    img = cv2.imread(IMAGE)
+    net, outlayers = get_net_layers(YOLO_CONFIG, YOLO_WEIGHTS)
+    start = time.time()
+    for i in range(NUM_ITERS):
+        raw_preds = get_predictions(net, img, outlayers)
+        confs, class_ids, boxes = get_labels(raw_preds, .1)
+    end = time.time()
+    print(f'{NUM_ITERS} iterations completed in {end-start} seconds with average freqency of {NUM_ITERS/ (end-start)} fps.')
+
+unit_test_fps()
 
