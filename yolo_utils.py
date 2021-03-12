@@ -4,6 +4,7 @@ Utils and handling for YOLO object predictions.
 import numpy as np
 import cv2
 import time
+from darknet import *
 
 IMAGE = 'path/to/img.jpg'
 YOLO_CONFIG = 'cfg/yolov3_custom.cfg'
@@ -84,5 +85,18 @@ def unit_test_fps():
     end = time.time()
     print(f'{NUM_ITERS} iterations completed in {end-start} seconds with average freqency of {NUM_ITERS/ (end-start)} fps.')
 
-unit_test_fps()
+
+## DARKNET API
+def darknet_test(datafile:str):
+    net, cnames, colors = load_network(YOLO_CONFIG, datafile, YOLO_WEIGHTS)
+    img = cv2.imerad(IMAGE)
+    for i in range(NUM_ITERS):
+        detections = detect_image(net, cnames, img)
+        if(len(detections) != 0):
+            continue
+        else:
+            print('Detected 0 objects.')
+
+
+darknet_test('yolo_0000-of-0001.data')
 
