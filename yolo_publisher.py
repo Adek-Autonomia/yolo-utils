@@ -14,25 +14,10 @@ from tensorrt_demos.utils.visualization import BBoxVisualization
 
 import pycuda.autoinit
 
-import argparse
 import cv2
 
-
-def parse_args():
-    """ Arguments for publisher/subscriber node """
-    parser = argparse.ArgumentParser(description='Publisher arguments: image and model')
-    parser.add_argument('-i', '--image', type=str, help='Path to image', required=True)
-    parser.add_argument('-m', '--model', type=str, 
-    help=('[yolov3|yolov3-tiny|yolov3-spp|yolov4|yolov4-tiny]-'
-              '[{dimension}], where dimension could be a single '
-              'number (e.g. 288, 416, 608) or WxH (e.g. 416x256)'),
-              default='yolov3-416', required=True)
-    args = parser.parse_args()
-    return args
-
-
-
-
+MODEL = 'yolov3-416'
+IMAGE = 'path/to/img.jpg'
 
 
 class YOLOPublisher():
@@ -98,9 +83,6 @@ class YOLOPublisher():
 
 
 def main():
-    args = parse_args()
-    IMAGE = args.image
-    MODEL = args.model
     ypub = YOLOPublisher(MODEL)
     rospy.init_node('YOLO_PREDICTIONS')
     ypub.do_publishing(IMAGE)
