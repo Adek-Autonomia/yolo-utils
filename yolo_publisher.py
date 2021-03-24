@@ -17,7 +17,7 @@ import pycuda.autoinit
 import cv2
 
 MODEL = 'yolov3-416'
-IMAGE = 'path/to/img.jpg'
+IMAGE = 'home/adek/dog.jpg'
 
 
 class YOLOPublisher():
