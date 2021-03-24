@@ -1,4 +1,4 @@
-#!usr/env/bin/python3
+#!usr/env/bin python3
 
 """
 tensorrt_demos-based publisher-subscriber combo using yolov3 [416].
