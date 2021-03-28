@@ -8,16 +8,16 @@ import cv_bridge
 import rospy
 from sensor_msgs.msg import Image as ImgMsg
 
+import pycuda.autoinit ## IMPORTANT - before trt_demos imports
+
 from tensorrt_demos.yolo_with_plugins import TrtYOLO, get_input_shape
 from tensorrt_demos.utils.yolo_classes import get_cls_dict
 from tensorrt_demos.utils.visualization import BBoxVisualization
 
-import pycuda.autoinit
-
 import cv2
 
 MODEL = 'yolov3-416'
-IMAGE = 'home/adek/dog.jpg'
+IMAGE = '/home/adek/dog.jpg'
 
 
 class YOLOPublisher():
@@ -26,7 +26,7 @@ class YOLOPublisher():
     def __init__(self, model:str):
         try:
             self.bridge = cv_bridge.CvBridge() ## Bridge
-            self.pub = rospy.Publisher('yolo_predictions_2', ImgMsg, queue_size=10) ## Publisher
+            self.pub = rospy.Publisher('yolo_predictions', ImgMsg, queue_size=10) ## Publisher
             self.sub = rospy.Subscriber('yolo_predictions', ImgMsg, self.callback) ## Subsciber for saving
             h, w = get_input_shape(model)
             self.net = TrtYOLO(model, (h, w)) ## Tensorrt optimized yolo   
