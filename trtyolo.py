@@ -2,7 +2,7 @@
 Module for using YOLOv3(v4) with TensorRT & CUDA. Contains runtime classes and functions, 
 assuming YOLO is already in the .trt engine format.
 Compatible with TensorRT 7+.
-ALWAYS import pycuda.autoinit before importing this module.
+# ALWAYS import pycuda.autoinit before importing this module.
 To change look of bounding boxes drawn on the image, do: \\
 `trtyolo.TEXT_SCALE = 1.5`
 """
@@ -15,6 +15,8 @@ from random import seed, shuffle
 from colorsys import hsv_to_rgb
 
 from typing import List, Dict, Tuple
+
+from dataclasses import dataclass
 
 
 # Visualization constants
@@ -255,24 +257,15 @@ class YOLO_Visualization():
 
 
 
+@dataclass(eq=True, init=True, repr=True, frozen=False)
 class HostDeviceMemory():
     """
-    Helper class for host & device memory pairs. More readable than just a tuple.
+    Helper class for host & device memory pairs. More readable than just a tuple. \\
+    host - memory buffer on host (RAM) \\
+    device - memory on device (GPU)
     """
-    def __init__(self, host_mem, device_mem):
-        """
-        Args: \\
-            host_mem - memory object on host (RAM) \\
-            device_mem - memory object on device (GPU)
-        """
-        self.host = host_mem
-        self.device = device_mem
-
-    def __str__(self):
-        return "Host:\n" + str(self.host) + "\nDevice:\n" + str(self.device)
-
-    def __repr__(self):
-        return self.__str__()
+    host = 0
+    device = 0
 
 
 
@@ -379,7 +372,7 @@ class TRTYOLO():
             ## Allocate host & GPU memory buffers.
             ## Using pagelocked memory prevents the driver from copying the memory every time it's
             ## sent to GPU, resulting in a 2x speed increase. This is a linear piece of memory 
-            ## because binding_size is the product of a shape tuple and therefora an int.
+            ## because binding_size is the product of a shape tuple and therefore an int.
             ## cuda.mem_alloc(), correspondingly, returns a linear piece of GPU memory
             ## with the same size.
             host_memory = cuda.pagelocked_empty(binding_size, binding_dtype)
@@ -421,6 +414,10 @@ class TRTYOLO():
 
         return img
 
+
+    ## NOTE JIT compile this? (or maybe just the inside of the `while`)
+    ## This is all numpy arrays, so seems like it should compile.
+    ## Does numba wirk with numpy #functions#? (like np.maximum)
     def _nms_boxes(self, detections: np.array) -> np.array:
         """
         Apply non-max suppression on a subset of YOLO detections. \\
@@ -479,6 +476,9 @@ class TRTYOLO():
         keep = np.array(indices_to_keep)
         return indices_to_keep
 
+
+    ## NOTE JIT compile this?
+    ## See TRTYOLO._nms_boxes() note.
     def _postprocess(self, net_outputs: List[np.array], img_shape: Tuple[int, int, int]) -> Tuple[np.array, np.array, np.array]:
         """
         Postprocess yolo output image. Reshape and rescale, apply NMS. \\
@@ -589,6 +589,8 @@ class TRTYOLO():
 
         # Synchronize the stream to make sure all calculations are done.
         self.stream.synchronize()
+
+        ## =================== END OF INFERENCE =====================
 
         # Return only the host outputs.
         net_outputs = [out.host for out in self.outputs]
