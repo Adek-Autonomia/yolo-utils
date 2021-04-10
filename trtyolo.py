@@ -11,12 +11,24 @@ import cv2
 import pycuda.driver as cuda
 import tensorrt as trt
 
+import ctypes
+
 from random import seed, shuffle
 from colorsys import hsv_to_rgb
 
 from typing import List, Dict, Tuple
 
 from dataclasses import dataclass
+
+try:
+    ctypes.cdll.LoadLibrary('/home/adek/yoloutils/libyolo_layer.so')
+except OSError as e:
+    raise SystemExit('Shared object library for YOLO-TensorRT layer could not be found. \
+                    Check ~/yoloutils for libyolo_layer.so') from e
+
+
+
+
 
 
 # Visualization constants
@@ -298,7 +310,7 @@ class TRTYOLO():
 
         try:
             self.context = self.engine.create_execution_context()
-            self.inputs, self.outputs, self.bindings, self.stream = self._allocate_buffers()
+            self.inputs, self.outputs, self.bindings, self.stream = self._allocate_net_bindings()
         except Exception as e:
             raise RuntimeError('Failed to allocate CUDA resources') from e
 
@@ -324,7 +336,7 @@ class TRTYOLO():
         Returns: \\
             engine - trt.ICudaEngine instance read in from file
         """
-        with open(enginepath, 'rb') as f, trt.Runtime(self.trt_logger) as runtime:
+        with open(enginepath, 'rb') as f, trt.Runtime(self.logger) as runtime:
             return runtime.deserialize_cuda_engine(f.read())
 
     def _allocate_net_bindings(self):
@@ -349,10 +361,10 @@ class TRTYOLO():
         ## Preallocate memory on host & GPU for every binding, so that inputs & outputs 
         ## can be quickly accessed.
         ## Binding type (in/out) is stored in the engine.
-        for binding in engine:
+        for binding in self.engine:
 
             ## Tensor shape of input or output: tuple
-            binding_dims = engine.get_binding_shape(binding)
+            binding_dims = self.engine.get_binding_shape(binding)
 
             ## This assumes len(binding_dims) == 4, meaning
             ## batch case is given explicitly, which only works in TensorRT 7+
@@ -367,7 +379,7 @@ class TRTYOLO():
 
             ## Cast dtype to numpy dtype. Pagelocked memory allocated by driver (line below)
             ## uses numpy pagelocked internally, and therefore it needs to have a numpy dtype.
-            binding_dtype = trt.nptype(engine.get_binding_dtype(binding))
+            binding_dtype = trt.nptype(self.engine.get_binding_dtype(binding))
 
             ## Allocate host & GPU memory buffers.
             ## Using pagelocked memory prevents the driver from copying the memory every time it's
@@ -498,7 +510,7 @@ class TRTYOLO():
             detections = output.reshape((-1, 7))
 
             ## Filter only detections over threshold (box_conf*class_prob => thresh)
-            detections = detections[detections[:, 4] * detections[:, 6] >= self.conf_thresh]
+            detections = detections[detections[:, 4]*detections[:, 6] >= self.conf_thresh]
             all_detections.append(detections)
 
         all_detections = np.concatenate(all_detections, axis=0)
@@ -512,20 +524,20 @@ class TRTYOLO():
 
         ## Rescale box sizes to original image
         img_h, img_w = img_shape[0], img_shape[1]
-        detections[:, 0:4] *= np.array([img_w, img_h, img_w, img_h], dtype=np.float32)
+        all_detections[:, 0:4] *= np.array([img_w, img_h, img_w, img_h], dtype=np.float32)
 
         ## NMS
 
         ## Create an array before to make sure something is returned even if 
         ## NMS returns nothing
-        nms_detections = np.zeros((0, 7), dtype=detections.dtype)
+        nms_detections = np.zeros((0, 7), dtype=all_detections.dtype)
 
         ## Only consider each detected class once -> use a set
-        for class_id in set(detections[:, 5]):
+        for class_id in set(all_detections[:, 5]):
 
             ## Do NMS for this class where it's been detected
-            idxs = np.where(detections[:, 5] == class_id)
-            this_cls_detections = detections[idxs]
+            idxs = np.where(all_detections[:, 5] == class_id)
+            this_cls_detections = all_detections[idxs]
 
             boxes_to_keep = self._nms_boxes(this_cls_detections)
 
@@ -581,7 +593,7 @@ class TRTYOLO():
         ## Can do asynchronously (faster) because stream will be synchronized later 
         ## with pycuda.
         ## Using execute_async_v2 because TensorRT version is 7+.
-        context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.handle)
+        self.context.execute_async_v2(bindings=self.bindings, stream_handle=self.stream.handle)
 
         ## Transfer predictions back from the GPU to RAM.
         ## dtoh = device to host.
