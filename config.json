@@ -14,13 +14,13 @@
     "tsc":{
         "publisher_queue_size" : 1,
         "input_shape": [64, 64],
-        "modelpath" : "/home/adek/models/TLC_best_model.h5"
+        "modelpath" : "/home/adek/models/new_model_92.h5"
     },
 
     "tlc":{
         "publisher_queue_size" : 1,
         "input_shape" : [75, 45, 3],
-        "modelpath" : "/home/adek/models/new_model_92.h5"
+        "modelpath" : "/home/adek/models/TLC_best_model.h5"
     },
 
     "yolo":{
@@ -30,7 +30,7 @@
         "conf_thresh" : 0.5,
         "nms_thresh" : 0.7,
         "sign_detections_index" : 4,
-        "light_detection_index" : 3,
+        "light_detections_index" : 3,
         "modelpath" : "/home/adek/models/yolov3_bddk-416.trt"
     },
 

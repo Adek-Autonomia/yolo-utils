@@ -32,9 +32,9 @@ def setup_tsc(tscobject, testmode: bool):
                                     Imagelist, 
                                     tscobject._callback)
     if not testmode:
-        tscobject.pub = rospy.Publisher(cfg['topics']['sign_class_topic'], 
+        tscobject.pub = rospy.Publisher(cfg['topics']['sign_classes_topic'], 
                                         IDlist,
-                                        cfg['tsc']['publisher_queue_size'])
+                                        queue_size=cfg['tsc']['publisher_queue_size'])
     
     tscobject.node_name = cfg['node_names']['tsc']
     tscobject.img_width, tscobject.imgheight = cfg['tsc']['input_shape']
@@ -55,12 +55,12 @@ def setup_tlc(tlcobject, testmode: bool):
                                     Imagelist, 
                                     tlcobject._callback)
     if not testmode:
-        tlcobject.pub = rospy.Publisher(cfg['topics']['light_class_topic'], 
+        tlcobject.pub = rospy.Publisher(cfg['topics']['light_classes_topic'], 
                                         IDlist, 
-                                        cfg['tlc']['publisher_queue_size'])
+                                        queue_size=cfg['tlc']['publisher_queue_size'])
 
     tlcobject.node_name = cfg['node_names']['tlc']
-    tlcobject.imshape = cfg['tsc']['input_shape']
+    tlcobject.imshape = cfg['tlc']['input_shape']
     tlcobject.model = load_model(cfg['tlc']['modelpath'])
     tlcobject.bridge = CvBridge()
     
@@ -80,10 +80,10 @@ def setup_yolo(yoloobject, testmode: bool):
 
     yoloobject.tsc_pub = rospy.Publisher(cfg['topics']['sign_image_topic'],
                                          Imagelist,
-                                         cfg['yolo']['publisher_queue_size'])
+                                         queue_size=cfg['yolo']['publisher_queue_size'])
     yoloobject.tlc_pub = rospy.Publisher(cfg['topics']['light_image_topic'],
                                          Imagelist,
-                                         cfg['yolo']['publisher_queue_size'])
+                                         queue_size=cfg['yolo']['publisher_queue_size'])
     yoloobject.yolo = TRTYOLO(cfg['yolo']['modelpath'],
                               tuple(cfg['yolo']['input_shape']),
                               cfg['yolo']['num_classes'],
