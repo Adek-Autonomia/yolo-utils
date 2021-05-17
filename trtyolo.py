@@ -23,11 +23,7 @@ from dataclasses import dataclass
 try:
     ctypes.cdll.LoadLibrary('/home/adek/yoloutils/libyolo_layer.so')
 except OSError as e:
-    raise SystemExit('Shared object library for YOLO-TensorRT layer could not be found. \
-                    Check ~/yoloutils for libyolo_layer.so') from e
-
-
-
+    raise SystemExit('Shared object library (for YOLO layer in trt.PluginField) could not be found. Check ~/yoloutils') from e
 
 
 
@@ -269,15 +265,19 @@ class YOLO_Visualization():
 
 
 
-@dataclass(eq=True, init=True, repr=True, frozen=False)
 class HostDeviceMemory():
     """
     Helper class for host & device memory pairs. More readable than just a tuple. \\
     host - memory buffer on host (RAM) \\
     device - memory on device (GPU)
     """
-    host = 0
-    device = 0
+    def __init__(self, host, device):
+        self.host = host
+        self.device = device
+
+
+    def __repr__(self):
+        return 'Host: ' + str(self.host) + '\nDevice: ' + str(self.device)
 
 
 
@@ -509,14 +509,18 @@ class TRTYOLO():
             ## Ensure outputs have final dimension 7
             detections = output.reshape((-1, 7))
 
+            #print(detections.shape)
             ## Filter only detections over threshold (box_conf*class_prob => thresh)
-            detections = detections[detections[:, 4]*detections[:, 6] >= self.conf_thresh]
+            detections = detections[detections[:, 4] * detections[:, 6] >= self.conf_thresh]
+            #print(detections.shape)
             all_detections.append(detections)
 
         all_detections = np.concatenate(all_detections, axis=0)
 
         ## Ensure correct return type even if nothing has actually been detected
         if len(all_detections) == 0:
+            print(all_detections)
+            print('Using 0len arrays')
             boxes = np.zeros((0, 4), dtype=np.int)
             scores = np.zeros((0,), dtype=np.float32)
             classes = np.zeros((0,), dtype=np.float32)
@@ -525,6 +529,8 @@ class TRTYOLO():
         ## Rescale box sizes to original image
         img_h, img_w = img_shape[0], img_shape[1]
         all_detections[:, 0:4] *= np.array([img_w, img_h, img_w, img_h], dtype=np.float32)
+    
+        #return detections
 
         ## NMS
 
@@ -607,8 +613,12 @@ class TRTYOLO():
         # Return only the host outputs.
         net_outputs = [out.host for out in self.outputs]
 
+        #return net_outputs
+
+        return self._postprocess(net_outputs, img.shape)
+
         ## Apply NMS, resize to original size.
-        boxes, scores, classes = self._postprocess(net_outputs, img.shape)
+        #boxes, scores, classes = self._postprocess(net_outputs, img.shape)
 
         ## Clip boxes so they don't go out of the image.
         boxes[:, [0, 2]] = np.clip(boxes[:, [0, 2]], 0, img.shape[1]-1)
