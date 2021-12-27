@@ -1,9 +1,9 @@
-#!usr/env/bin python3
+#!usr/env/bin/python3
 
 """
 tensorrt_demos-based publisher-subscriber combo using yolov3 [416].
-
 """
+
 import cv_bridge
 import rospy
 from sensor_msgs.msg import Image as ImgMsg
